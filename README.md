@@ -10,7 +10,7 @@ Open the tapestry (no install):
 
 **https://voeximus.github.io/knotted-studios-tapestry/**
 
-Pushes to `main` rebuild and deploy that site via GitHub Actions → GitHub Pages. Data still lives only in each person’s browser; Export remains the backup and the way to share.
+The live site is GitHub Pages. Pushes to `main` rebuild and deploy it via GitHub Actions. Data still lives only in each person’s browser; Export remains the backup and the way to share.
 
 ## Run locally
 
