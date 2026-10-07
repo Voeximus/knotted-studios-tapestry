@@ -4,6 +4,14 @@ A **self-owned**, visual-first game-design map for Knotted Studios (Giovanni + S
 
 This is **not Notion**. Pieces live in **your browser**: graph structure in `localStorage`, cover images in **IndexedDB**. Nothing is stored on a server. Use **Export** whenever you want a portable backup — that JSON file is also how you share the tapestry with someone else.
 
+## Live site
+
+Open the tapestry (no install):
+
+**https://voeximus.github.io/knotted-studios-tapestry/**
+
+Pushes to `main` rebuild and deploy that site via GitHub Actions → GitHub Pages. Data still lives only in each person’s browser; Export remains the backup and the way to share.
+
 ## Run locally
 
 From the repo root:
@@ -13,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually `http://localhost:5173`).
+Open the URL Vite prints (usually `http://localhost:5173/knotted-studios-tapestry/`).
 
 Production build:
 

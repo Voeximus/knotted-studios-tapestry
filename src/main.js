@@ -174,19 +174,33 @@ async function renderNodes() {
 
     const coverUrl = await resolveCoverUrl(node);
     const title = node.title?.trim() || '';
-    el.innerHTML = `
-      ${
-        coverUrl
-          ? `<img class="node-cover" draggable="false" alt="" src="${coverUrl}" />`
-          : `<div class="node-cover placeholder">${cat.emoji}</div>`
-      }
-      <div class="node-meta">
-        <div class="node-cat">${cat.label}</div>
-        <div class="node-title${title ? '' : ' empty'}">${
-          title || 'Untitled piece'
-        }</div>
-      </div>
-    `;
+
+    let cover;
+    if (coverUrl) {
+      cover = document.createElement('img');
+      cover.className = 'node-cover';
+      cover.draggable = false;
+      cover.alt = '';
+      cover.src = coverUrl;
+    } else {
+      cover = document.createElement('div');
+      cover.className = 'node-cover placeholder';
+      cover.textContent = cat.emoji;
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'node-meta';
+
+    const catEl = document.createElement('div');
+    catEl.className = 'node-cat';
+    catEl.textContent = cat.label;
+
+    const titleEl = document.createElement('div');
+    titleEl.className = title ? 'node-title' : 'node-title empty';
+    titleEl.textContent = title || 'Untitled piece';
+
+    meta.append(catEl, titleEl);
+    el.replaceChildren(cover, meta);
   }
 
   // Remove stale DOM nodes
