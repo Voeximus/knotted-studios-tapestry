@@ -1,1 +1,54 @@
-# knotted-studios-tapestry
+# Knotted Studios — Mind Tapestry
+
+A **self-owned**, visual-first game-design map for Knotted Studios (Giovanni + Stefan).
+
+This is **not Notion**. Pieces live in **your browser**: graph structure in `localStorage`, cover images in **IndexedDB**. Nothing is stored on a server. Use **Export** whenever you want a portable backup — that JSON file is also how you share the tapestry with someone else.
+
+## Run locally
+
+From the repo root:
+
+```bash
+npm install
+npm run dev
+```
+
+Open the URL Vite prints (usually `http://localhost:5173`).
+
+Production build:
+
+```bash
+npm run build
+npm run preview
+```
+
+## How to use
+
+| Action | How |
+|--------|-----|
+| **Pan** | Drag empty canvas (or hold Space + drag) |
+| **Zoom** | Mouse wheel (zooms toward cursor) |
+| **Add piece** | **+ Piece** or press `A`, or double-click empty space |
+| **Move piece** | Drag the piece |
+| **Select** | Click a piece → side panel for title, notes, category, image |
+| **Delete piece** | Select + `Delete` / `Backspace`, or panel button |
+| **Connect** | **Connect** (or `C`), click two pieces |
+| **Delete connection** | Click an edge, then `Delete` |
+| **Images** | Drop / paste / upload onto canvas or a selected piece |
+| **Fit view** | **Fit** or `F` |
+| **Export / Import** | Toolbar buttons — JSON includes images |
+
+Categories (color-coded): **Characters**, **Game Systems**, **Places & Levels**, **Story Beats**, **Decisions**, **Open Questions**, **Tapestry** (mood / AI art).
+
+Keep writing in the **side panel**. The canvas stays visual.
+
+## Data ownership
+
+- Auto-saves to this browser profile on this machine. A different browser, computer, or person starts empty.
+- **Export** is the backup and the way to share: download the JSON, then **Import** it elsewhere to restore or hand off the tapestry.
+- Clearing site data wipes the tapestry — export first.
+- No login, no backend, no multiplayer, no Notion sync.
+
+## Stack
+
+Vite + vanilla HTML / CSS / JS. No framework required.

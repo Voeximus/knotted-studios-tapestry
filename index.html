@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Knotted Studios — Mind Tapestry</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">🪢</span>
+          <div class="brand-text">
+            <strong>Knotted Studios</strong>
+            <span>Mind Tapestry</span>
+          </div>
+        </div>
+        <div class="toolbar">
+          <div class="tool-group" role="group" aria-label="Add piece">
+            <button type="button" class="btn" id="btn-add" title="Add piece (A)">
+              + Piece
+            </button>
+            <select id="category-pick" class="select" title="Category for new pieces" aria-label="Category">
+              <option value="characters">Characters</option>
+              <option value="systems">Game Systems</option>
+              <option value="places">Places &amp; Levels</option>
+              <option value="story">Story Beats</option>
+              <option value="decisions">Decisions</option>
+              <option value="questions">Open Questions</option>
+              <option value="tapestry">Tapestry</option>
+            </select>
+          </div>
+          <button type="button" class="btn" id="btn-connect" title="Connect mode (C)">
+            Connect
+          </button>
+          <button type="button" class="btn" id="btn-fit" title="Fit view">
+            Fit
+          </button>
+          <button type="button" class="btn ghost" id="btn-export" title="Export JSON">
+            Export
+          </button>
+          <button type="button" class="btn ghost" id="btn-import" title="Import JSON">
+            Import
+          </button>
+          <input type="file" id="import-file" accept="application/json,.json" hidden />
+          <input type="file" id="image-file" accept="image/*" hidden />
+        </div>
+        <div class="status" id="status">Ready</div>
+      </header>
+
+      <main class="workspace">
+        <div id="viewport" class="viewport" tabindex="0">
+          <div id="world" class="world">
+            <svg id="edges" class="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div id="nodes" class="nodes"></div>
+          </div>
+          <div id="minimap-hint" class="hint">
+            Scroll to zoom · Drag empty space to pan · Drop images onto canvas or pieces
+          </div>
+        </div>
+
+        <aside id="panel" class="panel collapsed" aria-label="Piece details">
+          <div class="panel-head">
+            <h2>Piece</h2>
+            <button type="button" class="icon-btn" id="btn-close-panel" title="Close">×</button>
+          </div>
+          <div class="panel-body" id="panel-body">
+            <p class="muted">Select a piece on the tapestry.</p>
+          </div>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
