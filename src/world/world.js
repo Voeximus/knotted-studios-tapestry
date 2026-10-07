@@ -86,12 +86,10 @@ function makeSlideTexture(artifact) {
 }
 
 function tapestryPose(node, index) {
-  const gx = (Number(node.x) || 0) / 140;
-  const gz = (Number(node.y) || 0) / 140;
   return {
-    x: -16 + (gx % 10) * 1.15,
-    y: 0.85 + (index % 5) * 0.35,
-    z: 4 + (gz % 12) * 1.1,
+    x: -8.15 + ((index % 3) - 1) * 0.55,
+    y: 0.75 + (index % 4) * 0.42,
+    z: index * 2.15,
   };
 }
 
