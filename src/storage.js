@@ -2,6 +2,7 @@ const DB_NAME = 'knotted-tapestry';
 const DB_VERSION = 1;
 const STORE = 'images';
 const GRAPH_KEY = 'knotted-tapestry-graph-v1';
+const WORLD_KEY = 'knotted-tapestry-world-v1';
 
 function openDb() {
   return new Promise((resolve, reject) => {
@@ -79,21 +80,40 @@ export function clearGraph() {
   localStorage.removeItem(GRAPH_KEY);
 }
 
-/** Export graph + embedded image data URLs for portable JSON. */
-export async function exportBundle(graph) {
+export function saveWorld(world) {
+  localStorage.setItem(WORLD_KEY, JSON.stringify(world));
+}
+
+export function loadWorld() {
+  try {
+    const raw = localStorage.getItem(WORLD_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** Export graph + world + embedded image data URLs for portable JSON. */
+export async function exportBundle(graph, world) {
   const images = {};
-  for (const node of graph.nodes) {
-    if (!node.imageId) continue;
-    const blob = await loadImage(node.imageId);
-    if (blob) {
-      images[node.imageId] = await blobToDataUrl(blob);
-    }
+  const imageIds = new Set();
+  for (const node of graph.nodes || []) {
+    if (node.imageId) imageIds.add(node.imageId);
+  }
+  for (const art of world?.artifacts || []) {
+    if (art.imageId) imageIds.add(art.imageId);
+  }
+  for (const id of imageIds) {
+    const blob = await loadImage(id);
+    if (blob) images[id] = await blobToDataUrl(blob);
   }
   return {
-    version: 1,
+    version: 2,
     exportedAt: new Date().toISOString(),
     studio: 'Knotted Studios',
     graph,
+    world: world || null,
     images,
   };
 }
@@ -108,5 +128,6 @@ export async function importBundle(bundle) {
     await saveImage(id, blob);
   }
   saveGraph(bundle.graph);
-  return bundle.graph;
+  if (bundle.world) saveWorld(bundle.world);
+  return { graph: bundle.graph, world: bundle.world || loadWorld() };
 }

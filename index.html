@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app">
+    <div id="app" class="app-mode-map">
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">🪢</span>
@@ -23,7 +23,15 @@
           </div>
         </div>
         <div class="toolbar">
-          <div class="tool-group" role="group" aria-label="Add piece">
+          <div class="mode-toggle" role="group" aria-label="View mode">
+            <button type="button" class="btn active" id="btn-mode-map" title="2D tapestry map">
+              Map
+            </button>
+            <button type="button" class="btn" id="btn-mode-world" title="3D world">
+              World
+            </button>
+          </div>
+          <div class="tool-group map-only" role="group" aria-label="Add piece">
             <button type="button" class="btn" id="btn-add" title="Add piece (A)">
               + Piece
             </button>
@@ -37,11 +45,14 @@
               <option value="tapestry">Tapestry</option>
             </select>
           </div>
-          <button type="button" class="btn" id="btn-connect" title="Connect mode (C)">
+          <button type="button" class="btn map-only" id="btn-connect" title="Connect mode (C)">
             Connect
           </button>
-          <button type="button" class="btn" id="btn-fit" title="Fit view">
+          <button type="button" class="btn map-only" id="btn-fit" title="Fit view">
             Fit
+          </button>
+          <button type="button" class="btn world-only" id="btn-world-upload" title="Upload HTML deck or image">
+            Upload
           </button>
           <button type="button" class="btn ghost" id="btn-export" title="Export JSON">
             Export
@@ -51,6 +62,7 @@
           </button>
           <input type="file" id="import-file" accept="application/json,.json" hidden />
           <input type="file" id="image-file" accept="image/*" hidden />
+          <input type="file" id="world-file" accept="text/html,.html,.htm,image/*" multiple hidden />
         </div>
         <div class="status" id="status">Ready</div>
       </header>
@@ -76,6 +88,27 @@
           </div>
         </aside>
       </main>
+
+      <div id="world-stage" class="world-stage" hidden>
+        <div id="world-mount" class="world-mount"></div>
+        <div id="world-hud" class="world-hud">
+          <div class="world-crosshair" aria-hidden="true"></div>
+          <p class="world-hint" id="world-hint">
+            Click the space to look · WASD walk · Q/E up-down · click a panel to read · drop HTML or images
+          </p>
+        </div>
+        <aside id="world-detail" class="world-detail" hidden>
+          <div class="panel-head">
+            <h2 id="world-detail-title">Panel</h2>
+            <button type="button" class="icon-btn" id="btn-close-world-detail" title="Close">×</button>
+          </div>
+          <div class="panel-body">
+            <p id="world-detail-meta" class="muted"></p>
+            <div id="world-detail-cover"></div>
+            <p id="world-detail-body"></p>
+          </div>
+        </aside>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

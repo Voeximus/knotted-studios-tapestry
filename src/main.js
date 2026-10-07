@@ -2,6 +2,8 @@ import { CATEGORIES, categoryOf } from './categories.js';
 import {
   saveGraph,
   loadGraph,
+  saveWorld,
+  loadWorld,
   saveImage,
   loadImage,
   deleteImage,
@@ -10,6 +12,9 @@ import {
   importBundle,
 } from './storage.js';
 import { createSeedGraph } from './seed.js';
+import { uid } from './id.js';
+import { parseHtmlDeck, isHtmlFile, galleryPose, nextGalleryStartZ } from './deck.js';
+import hollowOrdersSeed from './world/hollow-orders-seed.json';
 
 const NODE_W = 168;
 const NODE_H_FALLBACK = 160;
@@ -31,7 +36,21 @@ const els = {
   btnClosePanel: document.getElementById('btn-close-panel'),
   importFile: document.getElementById('import-file'),
   imageFile: document.getElementById('image-file'),
+  worldFile: document.getElementById('world-file'),
   hint: document.getElementById('minimap-hint'),
+  app: document.getElementById('app'),
+  btnModeMap: document.getElementById('btn-mode-map'),
+  btnModeWorld: document.getElementById('btn-mode-world'),
+  btnWorldUpload: document.getElementById('btn-world-upload'),
+  worldStage: document.getElementById('world-stage'),
+  worldMount: document.getElementById('world-mount'),
+  worldHud: document.getElementById('world-hud'),
+  worldDetail: document.getElementById('world-detail'),
+  worldDetailTitle: document.getElementById('world-detail-title'),
+  worldDetailMeta: document.getElementById('world-detail-meta'),
+  worldDetailBody: document.getElementById('world-detail-body'),
+  worldDetailCover: document.getElementById('world-detail-cover'),
+  btnCloseWorldDetail: document.getElementById('btn-close-world-detail'),
 };
 
 const state = {
@@ -47,11 +66,11 @@ const state = {
   spaceDown: false,
   imageTargetNodeId: null,
   saveTimer: null,
+  mode: 'map',
+  world: null,
+  worldCtrl: null,
+  worldUrls: new Map(),
 };
-
-function uid(prefix) {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-3)}`;
-}
 
 function setStatus(msg) {
   els.status.textContent = msg;
@@ -73,6 +92,219 @@ function persist() {
     edges: state.graph.edges,
   };
   saveGraph(graph);
+  persistWorld();
+}
+
+function persistWorld() {
+  if (!state.world) return;
+  if (state.worldCtrl) {
+    state.world.camera = state.worldCtrl.getCamera();
+  }
+  saveWorld({
+    version: 1,
+    seeded: !!state.world.seeded,
+    camera: state.world.camera || null,
+    artifacts: state.world.artifacts || [],
+  });
+}
+
+function seedWorldIfNeeded() {
+  const existing = loadWorld();
+  if (existing && Array.isArray(existing.artifacts) && existing.artifacts.length) {
+    state.world = existing;
+    return;
+  }
+  const artifacts = hollowOrdersSeed.slides.map((slide, index) => ({
+    id: uid('w'),
+    kind: 'slide',
+    title: slide.title,
+    body: slide.body,
+    deckId: hollowOrdersSeed.id,
+    deckTitle: hollowOrdersSeed.title,
+    slideIndex: slide.index,
+    totalSlides: hollowOrdersSeed.slides.length,
+    accent: '#d9a24b',
+    imageId: null,
+    ...galleryPose(index, 0),
+  }));
+  state.world = {
+    version: 1,
+    seeded: true,
+    camera: { x: 0, y: 1.65, z: -6.2, yaw: Math.PI, pitch: 0 },
+    artifacts,
+  };
+  persistWorld();
+}
+
+function closeWorldDetail() {
+  els.worldDetail.hidden = true;
+  els.worldDetailTitle.textContent = 'Panel';
+  els.worldDetailMeta.textContent = '';
+  els.worldDetailBody.textContent = '';
+  els.worldDetailCover.replaceChildren();
+}
+
+function inspectWorldArtifact(idOrObj) {
+  if (idOrObj && typeof idOrObj === 'object') {
+    els.worldDetailTitle.textContent = idOrObj.title || 'Piece';
+    els.worldDetailMeta.textContent = idOrObj.kind === 'tapestry' ? 'Tapestry piece' : '';
+    els.worldDetailBody.textContent = idOrObj.body || '';
+    els.worldDetailCover.replaceChildren();
+    els.worldDetail.hidden = false;
+    return;
+  }
+  const art = state.world?.artifacts.find((a) => a.id === idOrObj);
+  if (!art) return;
+  els.worldDetailTitle.textContent = art.title || 'Panel';
+  els.worldDetailMeta.textContent = art.deckTitle
+    ? `${art.deckTitle} · ${art.slideIndex + 1}/${art.totalSlides || '?'}`
+    : art.kind === 'image'
+      ? 'Uploaded image'
+      : '';
+  els.worldDetailBody.textContent = art.body || '';
+  els.worldDetailCover.replaceChildren();
+  if (art.imageId && state.worldUrls.has(art.imageId)) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = state.worldUrls.get(art.imageId);
+    els.worldDetailCover.appendChild(img);
+  }
+  els.worldDetail.hidden = false;
+  setStatus(art.title || 'Panel');
+}
+
+async function hydrateWorldArtifacts() {
+  const ready = [];
+  for (const art of state.world.artifacts) {
+    const copy = { ...art };
+    if (art.imageId) {
+      if (!state.worldUrls.has(art.imageId)) {
+        const blob = await loadImage(art.imageId);
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          state.worldUrls.set(art.imageId, url);
+          state.worldCtrl?.keepObjectUrl(url);
+        }
+      }
+      copy.imageUrl = state.worldUrls.get(art.imageId) || null;
+    }
+    ready.push(copy);
+  }
+  return ready;
+}
+
+async function refreshWorldScene() {
+  if (!state.worldCtrl) return;
+  state.worldCtrl.setArtifacts(await hydrateWorldArtifacts());
+  state.worldCtrl.setTapestryNodes(state.graph?.nodes || []);
+}
+
+async function ensureWorld() {
+  seedWorldIfNeeded();
+  if (!state.worldCtrl) {
+    const { createWorldController } = await import('./world/world.js');
+    state.worldCtrl = createWorldController({
+      mount: els.worldMount,
+      hud: els.worldHud,
+      onInspect: inspectWorldArtifact,
+      onStatus: setStatus,
+    });
+    if (state.world.camera) state.worldCtrl.setCamera(state.world.camera);
+  }
+  await refreshWorldScene();
+}
+
+async function setMode(mode) {
+  if (mode !== 'map' && mode !== 'world') return;
+  if (state.mode === 'world' && mode === 'map') {
+    persistWorld();
+    state.worldCtrl?.stop();
+    closeWorldDetail();
+  }
+  state.mode = mode;
+  els.app.classList.toggle('app-mode-map', mode === 'map');
+  els.app.classList.toggle('app-mode-world', mode === 'world');
+  els.btnModeMap.classList.toggle('active', mode === 'map');
+  els.btnModeWorld.classList.toggle('active', mode === 'world');
+  els.worldStage.hidden = mode !== 'world';
+  if (mode === 'world') {
+    await ensureWorld();
+    state.worldCtrl.start();
+    setStatus('World · Hollow Orders gallery · click to look');
+  } else {
+    setStatus('Ready · your tapestry, local-only');
+    els.viewport.focus();
+  }
+}
+
+async function addWorldImage(file, startZ) {
+  const imageId = uid('img');
+  await saveImage(imageId, file);
+  const pose = galleryPose(0, startZ);
+  return {
+    id: uid('w'),
+    kind: 'image',
+    title: file.name.replace(/\.[^.]+$/, '').slice(0, 80) || 'Image',
+    body: '',
+    deckId: null,
+    deckTitle: null,
+    slideIndex: 0,
+    totalSlides: 1,
+    accent: '#c4a1ff',
+    imageId,
+    ...pose,
+  };
+}
+
+async function addWorldDeck(file, startZ) {
+  const html = await file.text();
+  const deck = parseHtmlDeck(html, file.name);
+  if (!deck.slides.length) {
+    throw new Error('No .slide panels found in that HTML');
+  }
+  const deckId = uid('deck');
+  return deck.slides.map((slide, index) => ({
+    id: uid('w'),
+    kind: 'slide',
+    title: slide.title,
+    body: slide.body,
+    deckId,
+    deckTitle: deck.title,
+    slideIndex: slide.index,
+    totalSlides: deck.slides.length,
+    accent: '#7faad0',
+    imageId: null,
+    ...galleryPose(index, startZ),
+  }));
+}
+
+async function handleWorldFiles(fileList) {
+  const files = [...fileList];
+  if (!files.length) return;
+  seedWorldIfNeeded();
+  let startZ = nextGalleryStartZ(state.world.artifacts);
+  let added = 0;
+  for (const file of files) {
+    try {
+      if (isHtmlFile(file)) {
+        const arts = await addWorldDeck(file, startZ);
+        state.world.artifacts.push(...arts);
+        startZ = nextGalleryStartZ(state.world.artifacts);
+        added += arts.length;
+      } else if (file.type.startsWith('image/')) {
+        const art = await addWorldImage(file, startZ);
+        state.world.artifacts.push(art);
+        startZ = nextGalleryStartZ(state.world.artifacts);
+        added += 1;
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message || 'Upload failed');
+    }
+  }
+  persistWorld();
+  if (state.mode === 'world') await refreshWorldScene();
+  if (added) setStatus(`Placed ${added} object${added === 1 ? '' : 's'} in the world`);
 }
 
 function applyCamera() {
@@ -382,6 +614,9 @@ async function renderAll() {
   applyCamera();
   await renderNodes();
   if (state.selectedId) renderPanel();
+  if (state.worldCtrl?.isRunning()) {
+    state.worldCtrl.setTapestryNodes(state.graph.nodes);
+  }
 }
 
 function addNode(partial = {}) {
@@ -703,12 +938,16 @@ els.btnClosePanel.addEventListener('click', () => clearSelection());
 
 els.btnExport.addEventListener('click', async () => {
   try {
-    const bundle = await exportBundle({
-      version: 1,
-      camera: state.graph.camera,
-      nodes: state.graph.nodes.map(({ _seedCover, ...n }) => n),
-      edges: state.graph.edges,
-    });
+    persistWorld();
+    const bundle = await exportBundle(
+      {
+        version: 1,
+        camera: state.graph.camera,
+        nodes: state.graph.nodes.map(({ _seedCover, ...n }) => n),
+        edges: state.graph.edges,
+      },
+      state.world
+    );
     const blob = new Blob([JSON.stringify(bundle, null, 2)], {
       type: 'application/json',
     });
@@ -732,13 +971,17 @@ els.importFile.addEventListener('change', async () => {
   try {
     const text = await file.text();
     const bundle = JSON.parse(text);
-    const graph = await importBundle(bundle);
+    const { graph, world } = await importBundle(bundle);
     // Reset object URLs
     for (const url of state.imageUrls.values()) URL.revokeObjectURL(url);
     state.imageUrls.clear();
+    for (const url of state.worldUrls.values()) URL.revokeObjectURL(url);
+    state.worldUrls.clear();
     state.graph = graph;
+    if (world && Array.isArray(world.artifacts)) state.world = world;
     clearSelection();
     await renderAll();
+    if (state.mode === 'world') await refreshWorldScene();
     setStatus('Imported tapestry');
   } catch (err) {
     console.error(err);
@@ -761,6 +1004,10 @@ els.imageFile.addEventListener('change', async () => {
 });
 
 window.addEventListener('keydown', (e) => {
+  if (state.mode === 'world') {
+    if (e.code === 'Escape') closeWorldDetail();
+    return;
+  }
   if (e.code === 'Space' && !isTyping(e)) {
     state.spaceDown = true;
     e.preventDefault();
@@ -792,6 +1039,24 @@ function isTyping(e) {
 }
 
 els.viewport.addEventListener('contextmenu', (e) => e.preventDefault());
+
+els.btnModeMap.addEventListener('click', () => setMode('map'));
+els.btnModeWorld.addEventListener('click', () => setMode('world'));
+els.btnWorldUpload.addEventListener('click', () => els.worldFile.click());
+els.btnCloseWorldDetail.addEventListener('click', () => closeWorldDetail());
+els.worldFile.addEventListener('change', async () => {
+  const files = [...(els.worldFile.files || [])];
+  els.worldFile.value = '';
+  await handleWorldFiles(files);
+});
+
+els.worldStage.addEventListener('dragover', (e) => {
+  e.preventDefault();
+});
+els.worldStage.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  await handleWorldFiles(e.dataTransfer?.files || []);
+});
 
 // Seed covers into IndexedDB once so export works and cache is warm
 async function materializeSeedCovers(graph) {
@@ -833,6 +1098,8 @@ async function boot() {
   setStatus('Ready · your tapestry, local-only');
   els.viewport.focus();
 }
+
+window.addEventListener('pagehide', () => persistWorld());
 
 boot().catch((err) => {
   console.error(err);

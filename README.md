@@ -30,6 +30,16 @@ npm run build
 npm run preview
 ```
 
+## World mode
+
+Switch **Map / World** in the toolbar.
+
+- **Map** is the original 2D tapestry.
+- **World** is a walkable 3D studio. First visit seeds **Hollow Orders Foundation** as a gallery of 24 panels.
+- **Click** the dark space to look around (Esc releases). **WASD** walk, **Q/E** or Space/Ctrl move up and down, **Shift** to move faster.
+- **Click a panel** (or click while looking) to read the slide. Tapestry pieces from Map appear as colored nodes in the same space.
+- **Upload** or drop an HTML deck (`.slide` panels) or images — they become more objects in the world and stay in this browser (Export still backs everything up).
+
 ## How to use
 
 | Action | How |
